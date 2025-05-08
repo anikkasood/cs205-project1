@@ -46,6 +46,142 @@ int find_closest_left(const vector<vector<int>>& state, int start) {
     }
     return -1; // No valid tile found
 }
+
+
+vector<Problem::ExpandedState> Problem::expand_states(const vector<vector<int>>& state) const {
+    vector<ExpandedState> successors;
+    vector<int> blank_trenches = find_blank_trenches(state);
+    vector<int> blank_recesses = find_blank_recesses(state);
+    vector<vector<int>> new_state;
+    string action = "";
+    int n = state[0].size();
+
+    // TRENCH CASES (moving into empty trench positions)
+    for(int empty_pos : blank_trenches) {
+        // Check sliding from left
+        for(int move_pos = empty_pos-1; move_pos >= 0; move_pos--) {
+            if(state[0][move_pos] != 0) {  // Found a piece to slide
+                bool path_clear = true;
+                // Verify all spaces between are empty
+                for(int j = move_pos+1; j < empty_pos; j++) {
+                    if(state[0][j] != 0) {
+                        path_clear = false;
+                        break;
+                    }
+                }
+                if(path_clear) {
+                    new_state = state;
+                    new_state[0][empty_pos] = state[0][move_pos];
+                    new_state[0][move_pos] = 0;
+                    action = "move value: " + to_string(state[0][move_pos]) + 
+                            " to trench i = " + to_string(empty_pos) + "\n";
+                    successors.push_back({action, new_state});
+                }
+                break; // Only need to find closest piece to slide
+            }
+        }
+
+        // Check sliding from right
+        for(int move_pos = empty_pos+1; move_pos < n; move_pos++) {
+            if(state[0][move_pos] != 0) {  // Found a piece to slide
+                bool path_clear = true;
+                // Verify all spaces between are empty
+                for(int j = empty_pos+1; j < move_pos; j++) {
+                    if(state[0][j] != 0) {
+                        path_clear = false;
+                        break;
+                    }
+                }
+                if(path_clear) {
+                    new_state = state;
+                    new_state[0][empty_pos] = state[0][move_pos];
+                    new_state[0][move_pos] = 0;
+                    action = "move value: " + to_string(state[0][move_pos]) + 
+                            " to trench i = " + to_string(empty_pos) + "\n";
+                    successors.push_back({action, new_state});
+                }
+                break; // Only need to find closest piece to slide
+            }
+        }
+
+        // Check if can pull from recess above (only valid recess positions)
+        if((empty_pos == 3 || empty_pos == 5 || empty_pos == 7) && 
+           state[1][empty_pos] != 0) {
+            new_state = state;
+            new_state[0][empty_pos] = state[1][empty_pos];
+            new_state[1][empty_pos] = 0;
+            action = "move value: " + to_string(state[1][empty_pos]) + 
+                    " to trench i = " + to_string(empty_pos) + "\n";
+            successors.push_back({action, new_state});
+        }
+    }
+
+    // RECESS CASES (moving into empty recess positions)
+    for(int empty_pos : blank_recesses) {
+        // Only valid recess positions are 3,5,7
+        if(empty_pos != 3 && empty_pos != 5 && empty_pos != 7) continue;
+        
+        // Can pull from trench directly below if non-empty
+        if(state[0][empty_pos] != 0) {
+            new_state = state;
+            new_state[1][empty_pos] = state[0][empty_pos];
+            new_state[0][empty_pos] = 0;
+            action = "move value: " + to_string(state[0][empty_pos]) + 
+                    " to recess i = " + to_string(empty_pos) + "\n";
+            successors.push_back({action, new_state});
+        }
+        // If below is empty, can pull from left
+        else if(state[0][empty_pos] == 0) {
+            // Find closest non-empty to left
+            for(int move_pos = empty_pos-1; move_pos >= 0; move_pos--) {
+                if(state[0][move_pos] != 0) {
+                    bool path_clear = true;
+                    for(int j = move_pos+1; j < empty_pos; j++) {
+                        if(state[0][j] != 0) {
+                            path_clear = false;
+                            break;
+                        }
+                    }
+                    if(path_clear) {
+                        new_state = state;
+                        new_state[1][empty_pos] = state[0][move_pos];
+                        new_state[0][move_pos] = 0;
+                        action = "move value: " + to_string(state[0][move_pos]) + 
+                                " to recess i = " + to_string(empty_pos) + "\n";
+                        successors.push_back({action, new_state});
+                    }
+                    break;
+                }
+            }
+            // Find closest non-empty to right
+            for(int move_pos = empty_pos+1; move_pos < n; move_pos++) {
+                if(state[0][move_pos] != 0) {
+                    bool path_clear = true;
+                    for(int j = empty_pos+1; j < move_pos; j++) {
+                        if(state[0][j] != 0) {
+                            path_clear = false;
+                            break;
+                        }
+                    }
+                    if(path_clear) {
+                        new_state = state;
+                        new_state[1][empty_pos] = state[0][move_pos];
+                        new_state[0][move_pos] = 0;
+                        action = "move value: " + to_string(state[0][move_pos]) + 
+                                " to recess i = " + to_string(empty_pos) + "\n";
+                        successors.push_back({action, new_state});
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    return successors;
+}
+
+
+
 // vector<Problem::ExpandedState> Problem::expand_states(const vector<vector<int>>& state) const {
 //     vector<ExpandedState> successors;
 //     vector<int> blank_trenches = find_blank_trenches(state);
@@ -176,241 +312,247 @@ int find_closest_left(const vector<vector<int>>& state, int start) {
 //     return successors;
 // }
 
-vector<Problem::ExpandedState> Problem::expand_states(const vector<vector<int>>& state) const {
-    vector<ExpandedState> successors;
-    vector<int> blank_trenches = find_blank_trenches(state);
-    vector<int> blank_recesses = find_blank_recesses(state);
-    vector<vector<int>> new_state = state;
-    int move = 0;
-    string action = "";
-    int n = state[0].size();
+// vector<Problem::ExpandedState> Problem::expand_states(const vector<vector<int>>& state) const {
+//     vector<ExpandedState> successors;
+//     vector<int> blank_trenches = find_blank_trenches(state);
+//     vector<int> blank_recesses = find_blank_recesses(state);
+//     vector<vector<int>> new_state = state;
+//     int move = 0;
+//     string action = "";
+//     int n = state[0].size();
 
-    // TRENCH CASES
+//     // TRENCH CASES
 
-    for(int i : blank_trenches){
-        // if it's on the right edge --> find closest left tile
-        if(i == n-1){
-            move = find_closest_left(state, i);
-            if (move < 7 && (state[1][7] != 0) && move != -1){ // pull from closest recess
-                new_state = state;
-                new_state[0][i] = state[1][7]; 
-                new_state[1][7] = 0;
-                action = "recess: " + to_string(state[1][7]) + " - " + to_string(i+1) + "\n";
-                successors.push_back({action, new_state});
-            }
+//     for(int i : blank_trenches){
+//         // if it's on the right edge --> find closest left tile
+//         if(i == n-1){
+//             move = find_closest_left(state, i);
+//             if (move < 7 && (state[1][7] != 0) && move != -1){ // pull from closest recess
+//                 new_state = state;
+//                 new_state[0][i] = state[1][7]; 
+//                 new_state[1][7] = 0;
+//                 action = "move value: " + to_string(state[1][7]) + " to trench i = " + to_string(i) + "\n";
+//                 successors.push_back({action, new_state});
+//             }
             
-            // pull from closest trench on left
-            if(move != -1){
-                new_state = state;
-                new_state[0][i] = state[0][move]; 
-                new_state[0][move] = 0;
-                action = to_string(state[0][move]) + " - " + to_string(i+1) + "\n";
-                successors.push_back({action, new_state});
-            }
+//             // pull from closest trench on left
+//             if(move != -1){
+//                 new_state = state;
+//                 new_state[0][i] = state[0][move]; 
+//                 new_state[0][move] = 0;
+//                 action = "move value: " + to_string(state[0][move]) + " to trench i = " + to_string(i) + "\n";
+//                 successors.push_back({action, new_state});
+//             }
             
-        }
-        else if(i == 0){ // if it's on the left egde
-            move = find_closest_right(state, i);
-            if (move > 3 && (state[1][3] != 0) && move != -1){ // pull from closest recess
-                new_state = state;
-                new_state[0][i] = state[1][3]; 
-                new_state[1][3] = 0;
-                action = "recess: " +  to_string(state[1][3]) + " - " + to_string(i+1) + "\n";
-                successors.push_back({action, new_state});
+//         }
+//         else if(i == 0){ // if it's on the left egde
+//             move = find_closest_right(state, i);
+//             if (move > 3 && (state[1][3] != 0) && move != -1){ // pull from closest recess
+//                 new_state = state;
+//                 new_state[0][i] = state[1][3]; 
+//                 new_state[1][3] = 0;
+//                 action = "move value: " + to_string(state[1][3]) + " to trench i = " + to_string(i) + "\n";
+//                 successors.push_back({action, new_state});
 
-            }
+//             }
             
-             // pull from closest trench on right
-             if(move != -1){
-                new_state = state;
-                new_state[0][i] = state[0][move]; 
-                new_state[0][move] = 0;
-                action = to_string(state[0][move]) + " - " + to_string(i+1) + "\n";
-                successors.push_back({action, new_state});
-             }
-        }
-        // if it's in the center
-        else{
-            // check if can pull from a recess
-            if(state[1][3] != 0){
-                // check if the path from empty to this recess is clear 
-                if( i < 3){ // empty is on the left 
-                    bool path_clear = true;
-                    for(int j = i + 1; j < 3; j++){
-                        if(state[0][j] != 0){
-                            path_clear = false;
-                            break;
-                        }
-                    }
-                    if(path_clear){
-                        new_state[0][i] = state[1][3]; 
-                        new_state[1][3] = 0;
-                        action = "recess: " + to_string(state[1][3]) + " - " + to_string(i+1) + "\n";
-                        successors.push_back({action, new_state});
-                    }
-                }
-                else{ // empty is on the right
-                    bool path_clear = true;
-                    for(int j = 3; j < i; j++){
-                        if(state[0][j] != 0){
-                            path_clear = false;
-                            break;
-                        }
-                    }
-                    if(path_clear){
-                        new_state = state;
-                        new_state[0][i] = state[1][3]; 
-                        new_state[1][3] = 0;
-                        action = "recess: " + to_string(state[1][3]) + " - " + to_string(i+1) + "\n";
-                        successors.push_back({action, new_state});
-                    }
+//              // pull from closest trench on right
+//              if(move != -1){
+//                 new_state = state;
+//                 new_state[0][i] = state[0][move]; 
+//                 new_state[0][move] = 0;
+//                 action = "move value: " + to_string(state[0][move]) + " to trench i = " + to_string(i) + "\n";
+//                 successors.push_back({action, new_state});
+//              }
+//         }
+//         // if it's in the center
+//         else{
+//             // check if can pull from a recess
+//             if(state[1][3] != 0){
+//                 // check if the path from empty to this recess is clear 
+//                 if( i < 3){ // empty is on the left 
+//                     bool path_clear = true;
+//                     for(int j = i + 1; j < 3; j++){
+//                         if(state[0][j] != 0){
+//                             path_clear = false;
+//                             break;
+//                         }
+//                     }
+//                     if(path_clear){
+//                         new_state[0][i] = state[1][3]; 
+//                         new_state[1][3] = 0;
+//                         action = "move value: " + to_string(state[1][3]) + " to trench i = " + to_string(i) + "\n";
+//                         successors.push_back({action, new_state});
+//                     }
+//                 }
+//                 else{ // empty is on the right
+//                     bool path_clear = true;
+//                     for(int j = 3; j < i; j++){
+//                         if(state[0][j] != 0){
+//                             path_clear = false;
+//                             break;
+//                         }
+//                     }
+//                     if(path_clear){
+//                         new_state = state;
+//                         new_state[0][i] = state[1][3]; 
+//                         new_state[1][3] = 0;
+//                         action = "move value: " + to_string(state[1][3]) + " to trench i = " + to_string(i) + "\n";
+//                         successors.push_back({action, new_state});
+//                     }
 
-                }
+//                 }
 
-            }
+//             }
 
-            if(state[1][5] != 0){
-                // check if the path from empty to this recess is clear 
-                if(i < 5){ // empty is on the left 
-                    bool path_clear = true;
-                    for(int j = i + 1; j < 5; j++){
-                        if(state[0][j] != 0){
-                            path_clear = false;
-                            break;
-                        }
-                    }
-                    if(path_clear){
-                        new_state = state;
-                        new_state[0][i] = state[1][5]; 
-                        new_state[1][5] = 0;
-                        action = "recess: " + to_string(state[1][5]) + " - " + to_string(i+1) + "\n";
-                        successors.push_back({action, new_state});
-                    }
-                }
-                else{ // empty is on the right
-                    bool path_clear = true;
-                    for(int j = 5; j < i; j++){
-                        if(state[0][j] != 0){
-                            path_clear = false;
-                            break;
-                        }
-                    }
-                    if(path_clear){
-                        new_state = state;
-                        new_state[0][i] = state[1][5]; 
-                        new_state[1][5] = 0;
-                        action = "recess: " + to_string(state[1][5]) + " - " + to_string(i+1) + "\n";
-                        successors.push_back({action, new_state});
-                    }
+//             if(state[1][5] != 0){
+//                 // check if the path from empty to this recess is clear 
+//                 if(i < 5){ // empty is on the left 
+//                     bool path_clear = true;
+//                     for(int j = i + 1; j < 5; j++){
+//                         if(state[0][j] != 0){
+//                             path_clear = false;
+//                             break;
+//                         }
+//                     }
+//                     if(path_clear){
+//                         new_state = state;
+//                         new_state[0][i] = state[1][5]; 
+//                         new_state[1][5] = 0;
+//                         action = "move value: " + to_string(state[1][5]) + " to trench i = " + to_string(i) + "\n";
+//                         successors.push_back({action, new_state});
+//                     }
+//                 }
+//                 else{ // empty is on the right
+//                     bool path_clear = true;
+//                     for(int j = 5; j < i; j++){
+//                         if(state[0][j] != 0){
+//                             path_clear = false;
+//                             break;
+//                         }
+//                     }
+//                     if(path_clear){
+//                         new_state = state;
+//                         new_state[0][i] = state[1][5]; 
+//                         new_state[1][5] = 0;
+//                         action = "move value: " + to_string(state[1][5]) + " to trench i = " + to_string(i) + "\n";
+//                         successors.push_back({action, new_state});
+//                     }
 
-                }
+//                 }
                 
-            }
+//             }
 
-            if(state[1][7] != 0){
-                // check if the path from empty to this recess is clear 
-                if(i < 7){ // empty is on the left 
-                    bool path_clear = true;
-                    for(int j = i + 1; j < 7; j++){
-                        if(state[0][j] != 0){
-                            path_clear = false;
-                            break;
-                        }
-                    }
-                    if(path_clear){
-                        new_state = state;
-                        new_state[0][i] = state[1][7]; 
-                        new_state[1][7] = 0;
-                        action = "recess: " + to_string(state[1][7]) + " - " + to_string(i+1) + "\n";
-                        successors.push_back({action, new_state});
-                    }
-                }
-                else{ // empty is on the right
-                    bool path_clear = true;
-                    for(int j = 7; j < i; j++){
-                        if(state[0][j] != 0){
-                            path_clear = false;
-                            break;
-                        }
-                    }
-                    if(path_clear){
-                        new_state = state;
-                        new_state[0][i] = state[1][7]; 
-                        new_state[1][7] = 0;
-                        action = "recess: " + to_string(state[1][7]) + " - " + to_string(i+1) + "\n";
-                        successors.push_back({action, new_state});
-                    }
+//             if(state[1][7] != 0){
+//                 // check if the path from empty to this recess is clear 
+//                 if(i < 7){ // empty is on the left 
+//                     bool path_clear = true;
+//                     for(int j = i + 1; j < 7; j++){
+//                         if(state[0][j] != 0){
+//                             path_clear = false;
+//                             break;
+//                         }
+//                     }
+//                     if(path_clear){
+//                         new_state = state;
+//                         new_state[0][i] = state[1][7]; 
+//                         new_state[1][7] = 0;
+//                         action = "move value: " + to_string(state[1][7]) + " to trench i = " + to_string(i) + "\n";
+//                         successors.push_back({action, new_state});
+//                     }
+//                 }
+//                 else{ // empty is on the right
+//                     bool path_clear = true;
+//                     for(int j = 7; j < i; j++){
+//                         if(state[0][j] != 0){
+//                             path_clear = false;
+//                             break;
+//                         }
+//                     }
+//                     if(path_clear){
+//                         new_state = state;
+//                         new_state[0][i] = state[1][7]; 
+//                         new_state[1][7] = 0;
+//                         action = "move value: " + to_string(state[1][7]) + " to trench i = " + to_string(i) + "\n";
+//                         successors.push_back({action, new_state});
+//                     }
 
-                }
-            }
+//                 }
+//             }
 
-            // pull from above 
-            if(state[1][i] != 0 && state[1][i] != -1){
-                new_state = state;
-                new_state[0][i] = state[1][i]; 
-                new_state[1][i] = 0;
-                action = to_string(state[1][i]) + " - " + to_string(i+1) + "\n";
-                successors.push_back({action, new_state});
-            }
+//             // pull from above 
+//             if(state[1][i] != 0 && state[1][i] != -1){
+//                 new_state = state;
+//                 new_state[0][i] = state[1][i]; 
+//                 new_state[1][i] = 0;
+//                 action = "move value: " + to_string(state[1][i]) + " to trench i = " + to_string(i) + "\n";
+//                 successors.push_back({action, new_state});
+//             }
 
-            // pull from left 
-            move = find_closest_left(state, i);
-            if(move != -1){
-                new_state = state;
-                new_state[0][i] = state[0][move]; 
-                new_state[0][move] = 0;
-                action = to_string(state[0][move]) + " - " + to_string(i+1) + "\n";
-                successors.push_back({action, new_state});
-            }
-            // pull from right
-            move = find_closest_right(state, i);
-            if(move != -1){
-                new_state = state;
-                new_state[0][i] = state[0][move];
-                new_state[0][move] = 0;
-                action = to_string(state[0][move]) + " - " + to_string(i+1) + "\n";
-                successors.push_back({action, new_state});
-            }
-
-
-        }
-    }
-
-    // RECCESS CASES
-    for(int i : blank_recesses){
-        // check if can pull from directly below
-        if(state[0][i] != 0){
-            new_state = state;
-            new_state[1][i] = state[0][i]; 
-            new_state[0][i] = 0;
-            action = to_string(i+1) + " - " + "recess: " + to_string(state[0][i]) + "\n";
-            successors.push_back({action, new_state});
-        }
-        // check if can pull from below and to left
-        move = find_closest_left(state, i);
-        if (move != -1 && state[0][i] == 0) {
-            new_state = state;
-            new_state[1][i] = state[0][move]; 
-            new_state[0][move] = 0;
-            action = to_string(state[0][move]) + " - " + "recess: " + to_string(i+1) + "\n";
-            successors.push_back({action, new_state});
-        }
-        // check if can pull from directly below and to right
-        move = find_closest_right(state, i);
-        if (move != -1 && state[0][i] == 0) {
-            new_state = state;
-            new_state[1][i] = state[0][move]; 
-            new_state[0][move] = 0;
-            action = to_string(state[0][move]) + " - " + "recess: " + to_string(i+1) + "\n";
-            successors.push_back({action, new_state});
-        }
-    }
+//             // pull from left 
+//             move = find_closest_left(state, i);
+//             if(move != -1){
+//                 new_state = state;
+//                 new_state[0][i] = state[0][move]; 
+//                 new_state[0][move] = 0;
+//                 action = "move value: " + to_string(state[0][move]) + " to trench i = " + to_string(i) + "\n";
+//                 successors.push_back({action, new_state});
+//             }
+//             // pull from right
+//             move = find_closest_right(state, i);
+//             if(move != -1){
+//                 new_state = state;
+//                 new_state[0][i] = state[0][move];
+//                 new_state[0][move] = 0;
+//                 action = "move value: " + to_string(state[0][move]) + " to trench i = " + to_string(i) + "\n";
+//                 successors.push_back({action, new_state});
+//             }
 
 
-    return successors;
-}
+//         }
+//     }
 
-    // resulted in 31
+//     // RECCESS CASES
+//     for(int i : blank_recesses){
+//         // check if can pull from directly below
+//         if(state[0][i] != 0){
+//             new_state = state;
+//             new_state[1][i] = state[0][i]; 
+//             new_state[0][i] = 0;
+//             action = "move value: " + to_string(state[0][i]) + " to recess i = " + to_string(i) + "\n";
+//             successors.push_back({action, new_state});
+//         }
+//         // check if can pull from below and to left
+//         move = find_closest_left(state, i);
+//         if (move != -1 && state[0][i] == 0) {
+//             new_state = state;
+//             new_state[1][i] = state[0][move]; 
+//             new_state[0][move] = 0;
+//             action = "move value: " + to_string(state[0][move]) + " to recess i = " + to_string(i) + "\n";
+//             successors.push_back({action, new_state});
+//         }
+//         // check if can pull from directly below and to right
+//         move = find_closest_right(state, i);
+//         if (move != -1 && state[0][i] == 0) {
+//             new_state = state;
+//             new_state[1][i] = state[0][move]; 
+//             new_state[0][move] = 0;
+//             action = "move value: " + to_string(state[0][move]) + " to recess i = " + to_string(i) + "\n";
+//             successors.push_back({action, new_state});
+//         }
+//     }
+
+//     return successors;
+// }
+
+
+
+
+
+
+
+
+// resulted in 31
     // /************* Trench to Trench and Recess to Trench *************/
     // for (int empty : blank_trenches) {
     //     // From left trench
