@@ -37,7 +37,7 @@ bool is_explored(const vector<vector<int>>& state, const unordered_set<string>& 
 vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const vector<vector<int>>&, const vector<vector<int>>&)) {
     struct NodeCompare {
         bool operator()(const Node* lhs, const Node* rhs) const {
-            return lhs->total_cost() > rhs->total_cost(); // Min-heap
+            return lhs->total_cost() > rhs->total_cost();
         }
     };
 
@@ -45,7 +45,13 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
     unordered_set<string> explored;
     vector<Node*> all_nodes; 
 
+    unordered_map<string, int> cost_so_far;
+
     Node* initial_node = new Node(problem.initial_state, nullptr, "", 0, heuristic_fn(problem.initial_state, problem.goal_state));
+    
+    string initial_state_str = state_to_string(problem.initial_state);
+    cost_so_far[initial_state_str] = 0;
+
     frontier.push(initial_node);
     all_nodes.push_back(initial_node);
 
@@ -53,6 +59,7 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
     int max_queue_size = 0;
 
     while (!frontier.empty()) {
+       
         max_queue_size = max(max_queue_size, static_cast<int>(frontier.size()));
         Node* node = frontier.top();
         frontier.pop();
@@ -60,7 +67,7 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
         cout << "Expanding state with path cost: " << node->path_cost 
              << ", heuristic cost: " << node->heuristic_cost 
              << ", total cost: " << node->total_cost() << endl;
-
+      
         for (const auto& row : node->state) {
             for (int tile : row) cout << tile << " ";
             cout << endl;
@@ -86,17 +93,36 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
             for (const auto& successor : problem.expand_states(node->state)) {
                 const auto& action = successor.action;
                 const auto& new_state = successor.state;
-
+            
                 string successor_str = state_to_string(new_state);
-                if (explored.find(successor_str) == explored.end()) {
-                    int path_cost = node->path_cost + 1;
+                int new_cost = node->path_cost + 1;
+            
+                // Only push to frontier if the state is new or we found a cheaper path
+                if (cost_so_far.find(successor_str) == cost_so_far.end() || new_cost < cost_so_far[successor_str]) {
+                    cost_so_far[successor_str] = new_cost;
+            
                     int heuristic_cost = heuristic_fn(new_state, problem.goal_state);
-
-                    Node* child_node = new Node(new_state, node, action, path_cost, heuristic_cost);
+                    Node* child_node = new Node(new_state, node, action, new_cost, heuristic_cost);
                     frontier.push(child_node);
                     all_nodes.push_back(child_node); 
                 }
             }
+
+            
+            // for (const auto& successor : problem.expand_states(node->state)) {
+            //     const auto& action = successor.action;
+            //     const auto& new_state = successor.state;
+
+            //     string successor_str = state_to_string(new_state);
+            //     if (explored.find(successor_str) == explored.end()) {
+            //         int path_cost = node->path_cost + 1;
+            //         int heuristic_cost = heuristic_fn(new_state, problem.goal_state);
+
+            //         Node* child_node = new Node(new_state, node, action, path_cost, heuristic_cost);
+            //         frontier.push(child_node);
+            //         all_nodes.push_back(child_node); 
+            //     }
+            // }
         }
     }
 

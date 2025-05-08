@@ -5,49 +5,86 @@
 
 int manhattan_distance(const vector<vector<int>>& state, const vector<vector<int>>& goal) {
     int total = 0;
-
-    // for (int i = 0; i < state.size(); ++i) {
-    //     for (int j = 0; j < state[i].size(); ++j) {
-    //         if (state[i][j] != 0 && state[i][j] != -1) { // Ignore blank tiles
-    //             int tile_value = state[i][j];
-    //             int goalX = -1, goalY = -1;
-
-    //             // Find the position of the current tile in the goal state
-    //             for (int x = 0; x < goal.size(); ++x) {
-    //                 for (int y = 0; y < goal[x].size(); ++y) {
-    //                     if (goal[x][y] == tile_value) {
-    //                         goalX = x;
-    //                         goalY = y;
-    //                         break;
-    //                     }
-    //                 }
-    //                 if (goalX != -1) break; // Stop searching once the tile is found
-    //             }
-
-    //             // Add the Manhattan distance for this tile to the total
-    //             total += abs(goalX - i) + abs(goalY - j);
-    //         }
-    //     }
-    //}
-
-    for(int i = 0; i < 13; i++){
-        if(state[0][i] !=0){
-            total += abs(i - state[0][i] + 1); // distance of the current tile from where it's supposed to be
+    // dist of recess
+    for(int i = 0; i < state[1].size(); ++i) {
+        if(state[1][i] != 0){
+            if (state[1][i] != goal[1][i]) {
+                int pos_to_be = state[1][i]- 1; // the current value minus 1
+                total += abs(pos_to_be - i);
+                total += 1; // move out of recess 
+            }
         }
 
-
-        if(i==10){
-            total += abs(i - state[1][3] + 1);
-            total += 1; // move out of the recess
+        if (state[0][i] != 0){
+            if (state[0][i] != goal[0][i]) {
+                int pos_to_be = state[0][i]- 1; // the current value minus 1
+                total += abs(pos_to_be - i);
+            }
         }
     }
-
-    return total; // Total Manhattan distance
+    return total;
+   
 }
-
 //return 0 since uniform cost only looks at cost now and not heuristic
 int uniform_cost(const vector<vector<int>>& state, const vector<vector<int>>& goal) {
     return 0;
 }
 
 
+
+
+
+ // results in 29!!
+    // int dist = 0;
+
+    // // Find position of sergeant (1)
+    // int s_row = -1, s_col = -1;
+    // for (int row = 0; row < 2; ++row) {
+    //     for (int col = 0; col < state[row].size(); ++col) {
+    //         if (state[row][col] == 1) {
+    //             s_row = row;
+    //             s_col = col;
+    //             break;
+    //         }
+    //     }
+    // }
+
+    // dist += std::abs(s_row - 1) + std::abs(s_col - 0);
+
+    // for (int val = 1; val <= 9; ++val) {
+    //     for (int row = 0; row < 2; ++row) {
+    //         for (int col = 0; col < state[row].size(); ++col) {
+    //             if (state[row][col] == val) {
+    //                 // Goal is in trench row (row 0), column (val - 1)
+    //                 if (row != 0 || col != val - 1) {
+    //                     dist += 1;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
+    // return dist;
+   
+   
+   
+    // int total = 0;
+
+    // for(int i = 0; i < state[1].size(); ++i) {
+    //     // recess check
+    //     if(state[1][i] != goal[1][i]){
+    //         int value = state[1][i]; 
+    //         int curr_spot = i; 
+    //         total += abs (curr_spot - value - 1); 
+    //         total += 1; // +1 b/c need to move out of the recess
+    //     }
+
+    //     // trench check
+    //     if(state[0][i] != goal[0][i]){
+    //         int value = state[0][i]; 
+    //         int curr_spot = i; 
+    //         total += abs (curr_spot - value - 1); 
+    //     }
+    // }
+
+    // return total; 
