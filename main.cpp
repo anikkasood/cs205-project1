@@ -7,8 +7,14 @@
 #include "problem.h"
 #include "heuristics.h"
 #include <unordered_set>
+#include <fstream>
+#include <chrono>
+// ref https://www.geeksforgeeks.org/measure-execution-time-function-cpp/
+
 
 using namespace std;
+using namespace std::chrono;
+
 
 vector<string> find_solution_path(Node* node) {
     vector<string> actions;
@@ -34,7 +40,7 @@ bool is_explored(const vector<vector<int>>& state, const unordered_set<string>& 
     return explored.find(state_str) != explored.end();
 }
 
-vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const vector<vector<int>>&, const vector<vector<int>>&)) {
+vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const vector<vector<int>>&, const vector<vector<int>>&), ofstream& outFile) {
     struct NodeCompare {
         bool operator()(const Node* lhs, const Node* rhs) const {
             return lhs->total_cost() > rhs->total_cost();
@@ -58,32 +64,42 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
     int nodes_expanded = 0;
     int max_queue_size = 0;
 
+    long long int count = 0;
     while (!frontier.empty()) {
-       
         max_queue_size = max(max_queue_size, static_cast<int>(frontier.size()));
         Node* node = frontier.top();
         frontier.pop();
 
-        cout << "Expanding state with path cost: " << node->path_cost 
-             << ", heuristic cost: " << node->heuristic_cost 
-             << ", total cost: " << node->total_cost() << endl;
-      
-        for (const auto& row : node->state) {
-            for (int tile : row) cout << tile << " ";
-            cout << endl;
+        if (count<6000){
+            outFile << "Expanding state with path cost: " << node->path_cost 
+                << ", heuristic cost: " << node->heuristic_cost 
+                << ", total cost: " << node->total_cost() << endl;
+            count++;
+       
+        
+            for (const auto& row : node->state) {
+                for (int tile : row) outFile << tile << " ";
+                outFile << endl;
+            }
+            outFile << "------------------" << endl;
         }
-        cout << "------------------" << endl;
+         else if(count == 6000){
+            outFile<< "States expanded exceeds 6000. For the sake of storage, omitting the remaining states from trace... "<< endl << endl;
+            count++;
+        }
 
         if (problem.is_goal(node->state)) {
-            cout << "Nodes expanded: " << nodes_expanded << endl;
-            cout << "Max queue size: " << max_queue_size << endl;
-            cout << "Goal depth: " << node->path_cost << endl;
+            outFile << "Nodes expanded: " << nodes_expanded << endl;
+            outFile << "Max queue size: " << max_queue_size << endl;
+            outFile << "Goal depth: " << node->path_cost << endl;
 
             vector<string> solution = find_solution_path(node);
 
             for (Node* n : all_nodes) delete n;
             return solution;
         }
+
+        // if the current state isn't the solution, explore it
 
         string state_str = state_to_string(node->state);
         if (explored.find(state_str) == explored.end()) {
@@ -132,32 +148,56 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
 
 
 void solve_puzzle(const Problem& problem, int algorithm_choice) {
+    ofstream outFile("input2-a-star.txt"); // file to write the output
+
     switch (algorithm_choice) {
         case 1: {
             cout << "Solving with Uniform Cost Search" << endl;
-            vector<string> solution = graph_search(problem, uniform_cost);
-            for (const auto& action : solution) cout << action << " ";
-            cout << endl;
+            auto start = high_resolution_clock::now();
+            vector<string> solution = graph_search(problem, uniform_cost, outFile);
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+
+            outFile<< "Duration (microseconds): "<< duration.count() << endl;
+            for (const auto& action : solution) outFile << action << " ";
+            outFile << endl;
+            cout<< "Done writing solution to file." << endl;
             break;
         }
         case 2: {
             cout << "Solving with Manhattan Heuristic" << endl;
-            vector<string> solution = graph_search(problem, manhattan_distance);
-            for (const auto& action : solution) cout << action << " ";
-            cout << endl;
+            auto start = high_resolution_clock::now();
+            vector<string> solution = graph_search(problem, manhattan_distance, outFile);
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+
+            outFile<< "Duration (microseconds): "<< duration.count() << endl;
+            
+            
+            for (const auto& action : solution) outFile << action << " ";
+            outFile << endl;
+            cout<< "Done writing solution to file." << endl;
             break;
         }
         default:
             cout << "Invalid algorithm choice." << endl;
     }
+    outFile.close(); 
 }
 
 int main() {
     cout << "Welcome to the 9 Men in Trench Puzzle.\n";
-    
+    // // input 1
+    // vector<vector<int>> initial_state = {
+    //     {0, 2, 3, 4, 5, 6, 7, 8, 9, 1}, // trenches
+    //     {-1, -1, -1, 0, -1, 0, -1, 0, -1, -1} // recesses
+    // };
+
+
+    // input 2
     vector<vector<int>> initial_state = {
-        {0, 2, 3, 4, 5, 6, 7, 8, 9, 1}, // trenches
-        {-1, -1, -1, 0, -1, 0, -1, 0, -1, -1} // recesses
+        {2, 0, 0, 0, 0, 3, 4, 6, 8, 9}, // trenches
+        {-1, -1, -1, 1, -1, 5, -1, 7, -1, -1} // recesses
     };
 
     vector<vector<int>> goal_state = {
