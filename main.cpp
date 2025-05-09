@@ -9,13 +9,11 @@
 #include <unordered_set>
 #include <fstream>
 #include <chrono>
-// ref https://www.geeksforgeeks.org/measure-execution-time-function-cpp/
-
 
 using namespace std;
 using namespace std::chrono;
 
-
+// find soltn path 
 vector<string> find_solution_path(Node* node) {
     vector<string> actions;
     while (node->parent != nullptr) {
@@ -25,6 +23,8 @@ vector<string> find_solution_path(Node* node) {
     reverse(actions.begin(), actions.end());
     return actions;
 }
+
+// convert state to string so we can quickly compare
 string state_to_string(const vector<vector<int>>& state) {
     string result;
     for (const auto& row : state) {
@@ -46,6 +46,8 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
             return lhs->total_cost() > rhs->total_cost();
         }
     };
+    auto global_start_time = high_resolution_clock::now();
+    auto last_log_time = global_start_time;
 
     priority_queue<Node*, vector<Node*>, NodeCompare> frontier;
     unordered_set<string> explored;
@@ -99,12 +101,25 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
             return solution;
         }
 
-        // if the current state isn't the solution, explore it
-
+        // if the current state isn't the solution explore
         string state_str = state_to_string(node->state);
         if (explored.find(state_str) == explored.end()) {
             explored.insert(state_str);
             nodes_expanded++;
+
+            // for tracking every 10 mins
+            // auto current_time = high_resolution_clock::now();
+            // auto time_since_last_log = duration_cast<seconds>(current_time - last_log_time);
+            // if (time_since_last_log.count() >= 600) { // 600 seconds = 10 minutes
+            //     auto total_elapsed = duration_cast<minutes>(current_time - global_start_time);
+            //     outFile << "[Progress Log @ " << total_elapsed.count() << " minutes]" << endl;
+            //     outFile << "  Nodes expanded so far: " << nodes_expanded << endl;
+            //     outFile << "  Max queue size so far: " << max_queue_size << endl;
+            //     outFile << "  Frontier size now: " << frontier.size() << endl;
+            //     outFile << "------------------------------" << endl;
+
+            //     last_log_time = current_time; // reset log timer
+            // }
 
             for (const auto& successor : problem.expand_states(node->state)) {
                 const auto& action = successor.action;
@@ -113,7 +128,7 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
                 string successor_str = state_to_string(new_state);
                 int new_cost = node->path_cost + 1;
             
-                // Only push to frontier if the state is new or we found a cheaper path
+                // only push if new state/found a cheaper path
                 if (cost_so_far.find(successor_str) == cost_so_far.end() || new_cost < cost_so_far[successor_str]) {
                     cost_so_far[successor_str] = new_cost;
             
@@ -123,22 +138,6 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
                     all_nodes.push_back(child_node); 
                 }
             }
-
-            
-            // for (const auto& successor : problem.expand_states(node->state)) {
-            //     const auto& action = successor.action;
-            //     const auto& new_state = successor.state;
-
-            //     string successor_str = state_to_string(new_state);
-            //     if (explored.find(successor_str) == explored.end()) {
-            //         int path_cost = node->path_cost + 1;
-            //         int heuristic_cost = heuristic_fn(new_state, problem.goal_state);
-
-            //         Node* child_node = new Node(new_state, node, action, path_cost, heuristic_cost);
-            //         frontier.push(child_node);
-            //         all_nodes.push_back(child_node); 
-            //     }
-            // }
         }
     }
 
@@ -148,7 +147,7 @@ vector<string> graph_search(const Problem& problem, int (*heuristic_fn)(const ve
 
 
 void solve_puzzle(const Problem& problem, int algorithm_choice) {
-    ofstream outFile("input2-a-star.txt"); // file to write the output
+    ofstream outFile("input1-ucs.txt"); // file to write the output
 
     switch (algorithm_choice) {
         case 1: {
@@ -187,18 +186,24 @@ void solve_puzzle(const Problem& problem, int algorithm_choice) {
 
 int main() {
     cout << "Welcome to the 9 Men in Trench Puzzle.\n";
-    // // input 1
-    // vector<vector<int>> initial_state = {
-    //     {0, 2, 3, 4, 5, 6, 7, 8, 9, 1}, // trenches
-    //     {-1, -1, -1, 0, -1, 0, -1, 0, -1, -1} // recesses
-    // };
+    // input 1
+    vector<vector<int>> initial_state = {
+        {0, 2, 3, 4, 5, 6, 7, 8, 9, 1}, // trenches
+        {-1, -1, -1, 0, -1, 0, -1, 0, -1, -1} // recesses
+    };
 
 
     // input 2
-    vector<vector<int>> initial_state = {
-        {2, 0, 0, 0, 0, 3, 4, 6, 8, 9}, // trenches
-        {-1, -1, -1, 1, -1, 5, -1, 7, -1, -1} // recesses
-    };
+    // vector<vector<int>> initial_state = {
+    //     {2, 0, 0, 0, 0, 3, 4, 6, 8, 9}, // trenches
+    //     {-1, -1, -1, 1, -1, 5, -1, 7, -1, -1} // recesses
+    // };
+
+    // input 3
+    //  vector<vector<int>> initial_state = {
+    //     {1, 2, 3, 4, 5, 6, 0, 0, 8, 9}, // trenches
+    //     {-1, -1, -1, 0, -1, 0, -1, 7, -1, -1} // recesses
+    // };
 
     vector<vector<int>> goal_state = {
         {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}, // trenches
